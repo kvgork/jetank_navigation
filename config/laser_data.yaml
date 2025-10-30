@@ -1,0 +1,20 @@
+# Laser data configuration for jetank_navigation
+
+laser_data:
+  laser_data_node:
+    ros__parameters:
+      # Conversion parameters
+      conversion.height: 0.05 #height of the proposed laser scan
+      conversion.range: 0.005 # range around the height 
+      
+      # Laser configuration
+      laser.density: 640 # comparable to pointcloud
+      laser.min_range: 0.3
+      laser.max_range: 1.5
+      laser.angle_min: # should be based on FoV of camera images
+      laser.angle_max: # should be based on FoV of camera images
+      laser.anlge_increment: #should be based on laser.density and the min/max angles
+
+      # Noise filterin parameters
+      filter.max_distance: 0.05 #Max distance between adjacent laser points [m]
+      filter.group_amount: 4 #amount of laser data point to look over for outliers

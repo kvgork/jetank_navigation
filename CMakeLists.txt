@@ -15,6 +15,34 @@ find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 
+# Include directories
+include_directories(include)
+
+# Build laser_data_node executable
+add_executable(laser_data_node src/laser_data_node.cpp)
+
+ament_target_dependencies(laser_data_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+)
+
+# Install executables
+install(TARGETS
+  laser_data_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install config files
+install(DIRECTORY
+  config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

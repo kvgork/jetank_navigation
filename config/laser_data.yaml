@@ -1,20 +1,37 @@
 # Laser data configuration for jetank_navigation
+# PointCloud2 to LaserScan conversion parameters
 
 laser_data:
   laser_data_node:
     ros__parameters:
-      # Conversion parameters
-      conversion.height: 0.05 #height of the proposed laser scan
-      conversion.range: 0.005 # range around the height 
-      
-      # Laser configuration
-      laser.density: 640 # comparable to pointcloud
-      laser.min_range: 0.3
-      laser.max_range: 1.5
-      laser.angle_min: # should be based on FoV of camera images
-      laser.angle_max: # should be based on FoV of camera images
-      laser.anlge_increment: #should be based on laser.density and the min/max angles
+      # Frame configuration
+      frame_id: "base_link"              # Target frame for laser scan output
+      source_frame: "camera_left_link"   # Source frame from pointcloud
 
-      # Noise filterin parameters
-      filter.max_distance: 0.05 #Max distance between adjacent laser points [m]
-      filter.group_amount: 4 #amount of laser data point to look over for outliers
+      # Topic names
+      input_topic: "/stereo_camera/points"  # Input PointCloud2 topic
+      output_topic: "/scan"                  # Output LaserScan topic
+
+      # Conversion parameters
+      conversion.height: 0.05    # Height of the horizontal slice [m] (5cm above base_link)
+      conversion.range: 0.005    # Tolerance around height [m] (±5mm)
+
+      # Laser scan configuration (based on IMX219-83: 73° horizontal FOV)
+      laser.density: 640                # Number of laser beams (matches pointcloud width)
+      laser.min_range: 0.3              # Minimum detection range [m]
+      laser.max_range: 1.5              # Maximum detection range [m]
+      laser.angle_min: -0.6370451769    # Minimum scan angle [rad] (-36.5°)
+      laser.angle_max: 0.6370451769     # Maximum scan angle [rad] (+36.5°)
+      laser.angle_increment: 0.001993907112  # Angular spacing between beams [rad] (~0.114°)
+
+      # Transform parameters
+      transform_tolerance: 0.066   # Transform staleness tolerance [s] (2 * 33ms @ 30Hz)
+
+      # QoS settings (match pointcloud publisher)
+      qos.reliability: "reliable"  # RELIABLE reliability policy
+      qos.durability: "volatile"   # VOLATILE durability policy
+      qos.depth: 1                 # Queue depth
+
+      # Noise filtering parameters
+      filter.max_distance: 0.05    # Max distance between adjacent laser points [m]
+      filter.group_amount: 4       # Window size for outlier detection

@@ -14,6 +14,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -29,6 +30,7 @@ ament_target_dependencies(laser_data_node
   nav_msgs
   tf2
   tf2_ros
+  tf2_geometry_msgs
 )
 
 # Install executables
@@ -41,6 +43,31 @@ install(TARGETS
 install(DIRECTORY
   config/
   DESTINATION share/${PROJECT_NAME}/config
+)
+
+# Install launch files
+install(DIRECTORY
+  launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install maps directory (optional - for saved maps)
+install(DIRECTORY
+  maps/
+  DESTINATION share/${PROJECT_NAME}/maps
+  OPTIONAL
+)
+
+# Install RViz config files
+install(DIRECTORY
+  rviz/
+  DESTINATION share/${PROJECT_NAME}/rviz
+)
+
+# Install scripts
+install(PROGRAMS
+  scripts/save_map.sh
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

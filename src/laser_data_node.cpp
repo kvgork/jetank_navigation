@@ -1,10 +1,15 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/msg/laser_scan.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <geometry_msgs/msg/point_stamped.hpp>
 #include <memory>
 #include <string>
+#include <cmath>
+#include <algorithm>
 
 // Configuration structure for laser scan parameters
 struct LaserConfig {
@@ -220,22 +225,133 @@ private:
     }
 
     void pointcloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-        // TODO: Implement conversion logic
-        // 1. Validate pointcloud data
-        // 2. Check transform availability
-        // 3. Extract points from PointCloud2
-        // 4. Transform points to base_link
-        // 5. Filter by height (conversion_height ± conversion_range)
-        // 6. Project to 2D and bin by angle
-        // 7. Keep minimum distance per angle bin
+        // 1. Validate input cloud
+        if (msg->width * msg->height == 0) {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                                "Received empty point cloud");
+            return;
+        }
+
+        // 2. Lookup transform
+        geometry_msgs::msg::TransformStamped transform;
+        try {
+            transform = tf_buffer_->lookupTransform(
+                config_.frame_id,
+                msg->header.frame_id,
+                msg->header.stamp,
+                rclcpp::Duration::from_seconds(config_.transform_tolerance)
+            );
+        } catch (tf2::TransformException& ex) {
+            RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                                "Transform failed: %s", ex.what());
+            return;
+        }
+
+        // 3. Initialize LaserScan message
+        sensor_msgs::msg::LaserScan scan;
+        scan.header.stamp = msg->header.stamp;
+        scan.header.frame_id = config_.frame_id;
+        scan.angle_min = config_.laser_angle_min;
+        scan.angle_max = config_.laser_angle_max;
+        scan.angle_increment = config_.laser_angle_increment;
+        scan.time_increment = 0.0;
+        scan.scan_time = 0.0;
+        scan.range_min = config_.laser_min_range;
+        scan.range_max = config_.laser_max_range;
+
+        // Calculate number of range bins
+        int num_ranges = static_cast<int>(
+            (config_.laser_angle_max - config_.laser_angle_min) /
+            config_.laser_angle_increment
+        ) + 1;
+
+        // Initialize all ranges to max_range (no detection)
+        scan.ranges.assign(num_ranges, config_.laser_max_range);
+
+        // 4. Iterate through point cloud
+        sensor_msgs::PointCloud2ConstIterator<float> iter_x(*msg, "x");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_y(*msg, "y");
+        sensor_msgs::PointCloud2ConstIterator<float> iter_z(*msg, "z");
+
+        int points_processed = 0;
+        int points_in_range = 0;
+
+        for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
+            // Skip invalid points
+            if (!std::isfinite(*iter_x) || !std::isfinite(*iter_y) || !std::isfinite(*iter_z)) {
+                continue;
+            }
+
+            // Transform point to base_link frame
+            geometry_msgs::msg::PointStamped point_in, point_out;
+            point_in.header = msg->header;
+            point_in.point.x = *iter_x;
+            point_in.point.y = *iter_y;
+            point_in.point.z = *iter_z;
+
+            tf2::doTransform(point_in, point_out, transform);
+
+            points_processed++;
+
+            // 5. Height filtering - keep points in horizontal slice
+            double height_diff = std::abs(point_out.point.z - config_.conversion_height);
+            if (height_diff > config_.conversion_range) {
+                continue;
+            }
+
+            // 6. Calculate angle and distance (polar coordinates)
+            double angle = std::atan2(point_out.point.y, point_out.point.x);
+            double distance = std::sqrt(
+                point_out.point.x * point_out.point.x +
+                point_out.point.y * point_out.point.y
+            );
+
+            // Check if distance is in valid range
+            if (distance < config_.laser_min_range || distance > config_.laser_max_range) {
+                continue;
+            }
+
+            // Check if angle is within scan range
+            if (angle < config_.laser_angle_min || angle > config_.laser_angle_max) {
+                continue;
+            }
+
+            // 7. Calculate bin index and keep minimum distance
+            int index = static_cast<int>(
+                (angle - config_.laser_angle_min) / config_.laser_angle_increment
+            );
+
+            if (index >= 0 && index < num_ranges) {
+                // Keep minimum distance (closest obstacle - safety-first)
+                if (distance < scan.ranges[index]) {
+                    scan.ranges[index] = static_cast<float>(distance);
+                    points_in_range++;
+                }
+            }
+        }
+
         // 8. Apply noise filtering
+        for (int i = 1; i < num_ranges - 1; ++i) {
+            // Only filter points that have a valid reading
+            if (scan.ranges[i] < config_.laser_max_range) {
+                // Check distance to neighbors
+                float diff_prev = std::abs(scan.ranges[i] - scan.ranges[i-1]);
+                float diff_next = std::abs(scan.ranges[i] - scan.ranges[i+1]);
+
+                // If point is isolated (far from neighbors), it's likely noise
+                if (diff_prev > config_.filter_max_distance &&
+                    diff_next > config_.filter_max_distance) {
+                    scan.ranges[i] = config_.laser_max_range;
+                }
+            }
+        }
+
         // 9. Publish LaserScan message
+        laser_scan_pub_->publish(scan);
 
-        RCLCPP_DEBUG(get_logger(), "PointCloud2 received: %d points",
-                    msg->width * msg->height);
-
-        // For now, just log that we received data
-        // Implementation will come in next phase
+        RCLCPP_DEBUG(get_logger(),
+                    "Processed %d points, %d in range, published %d laser ranges",
+                    points_processed, points_in_range, num_ranges);
     }
 };
 

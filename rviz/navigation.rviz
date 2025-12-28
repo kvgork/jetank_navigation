@@ -1,0 +1,79 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+  - Class: rviz_common/Views
+    Name: Views
+  - Class: nav2_rviz_plugins/Navigation 2
+    Name: Navigation 2
+
+Visualization Manager:
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Reference Frame: map
+
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel
+      Description Topic: /robot_description
+
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Frames:
+        All Enabled: true
+
+    - Class: rviz_default_plugins/Map
+      Name: Map
+      Topic: /map
+
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan
+      Topic: /scan
+      Size: 0.05
+      Color: 255; 0; 0
+
+    - Class: rviz_default_plugins/PointCloud2
+      Name: PointCloud
+      Topic: /stereo_camera/points
+      Size: 0.01
+
+    - Class: nav2_rviz_plugins/ParticleCloud
+      Name: ParticleCloud
+      Topic: /particle_cloud
+
+    - Class: rviz_default_plugins/Path
+      Name: GlobalPlan
+      Topic: /plan
+      Color: 255; 255; 0
+
+    - Class: rviz_default_plugins/Path
+      Name: LocalPlan
+      Topic: /local_plan
+      Color: 0; 255; 0
+
+    - Class: rviz_default_plugins/Polygon
+      Name: GlobalCostmap
+      Topic: /global_costmap/published_footprint
+
+    - Class: rviz_default_plugins/Polygon
+      Name: LocalCostmap
+      Topic: /local_costmap/published_footprint
+
+  Global Options:
+    Fixed Frame: map
+
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: nav2_rviz_plugins/GoalTool
+    - Class: rviz_default_plugins/SetInitialPose
+
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: TopDownOrtho
+      Scale: 10.0

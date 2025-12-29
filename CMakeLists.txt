@@ -14,6 +14,61 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+
+# Include directories
+include_directories(include)
+
+# Build laser_data_node executable
+add_executable(laser_data_node src/laser_data_node.cpp)
+
+ament_target_dependencies(laser_data_node
+  rclcpp
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+)
+
+# Install executables
+install(TARGETS
+  laser_data_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install config files
+install(DIRECTORY
+  config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
+# Install launch files
+install(DIRECTORY
+  launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+# Install maps directory (optional - for saved maps)
+install(DIRECTORY
+  maps/
+  DESTINATION share/${PROJECT_NAME}/maps
+  OPTIONAL
+)
+
+# Install RViz config files
+install(DIRECTORY
+  rviz/
+  DESTINATION share/${PROJECT_NAME}/rviz
+)
+
+# Install scripts
+install(PROGRAMS
+  scripts/save_map.sh
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

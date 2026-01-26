@@ -1,0 +1,29 @@
+# Slamtec C1M1 LiDAR Configuration
+# Specs:
+#   - Range: 0.05m - 12m
+#   - 360 degree FOV
+#   - 5000 Hz sample rate, 10 Hz scan frequency
+#   - USB interface, 460800 baud
+#
+# Setup Instructions:
+#   1. Install rplidar_ros package:
+#      cd ~/workspaces/ros2_ws/src
+#      git clone -b ros2 https://github.com/Slamtec/rplidar_ros.git
+#      cd .. && colcon build --packages-select rplidar_ros
+#
+#   2. Create udev rule for persistent /dev/rplidar symlink:
+#      echo 'KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="0666", SYMLINK+="rplidar"' | sudo tee /etc/udev/rules.d/99-rplidar.rules
+#      sudo udevadm control --reload-rules && sudo udevadm trigger
+#
+#   3. Verify device:
+#      ls -l /dev/rplidar
+
+rplidar_node:
+  ros__parameters:
+    channel_type: "serial"
+    serial_port: "/dev/rplidar"
+    serial_baudrate: 460800
+    frame_id: "laser"
+    inverted: false
+    angle_compensate: true
+    scan_mode: "Standard"

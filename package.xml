@@ -33,6 +33,9 @@
   <!-- SLAM (runtime dependency) -->
   <exec_depend>slam_toolbox</exec_depend>
 
+  <!-- Hardware LiDAR (optional - for rplidar support) -->
+  <exec_depend>rplidar_ros</exec_depend>
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

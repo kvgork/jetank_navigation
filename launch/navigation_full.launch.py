@@ -78,7 +78,12 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(pkg_jetank_main, 'launch', 'urdf.launch.py')
         ),
-        launch_arguments={'use_sim_time': use_sim_time}.items()
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'use_rplidar': PythonExpression(
+                ["'true' if '", lidar_source, "' == 'rplidar' else 'false'"]
+            )
+        }.items()
     )
 
     # 2. Stereo camera perception (only when using pointcloud source)

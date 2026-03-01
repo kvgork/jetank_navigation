@@ -101,6 +101,14 @@ def generate_launch_description():
         )
     )
 
+    # IMU (ICM-20948 on Waveshare IMX219-83 Stereo Camera module)
+    imu_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_jetank_nav, 'launch', 'imu.launch.py')
+        ),
+        launch_arguments={'use_sim_time': use_sim_time}.items()
+    )
+
     # 4. LaserScan source (pointcloud conversion or rplidar)
     laser_scan_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -163,6 +171,7 @@ def generate_launch_description():
     ld.add_action(urdf_launch)
     ld.add_action(camera_launch)
     ld.add_action(motor_launch)
+    ld.add_action(imu_launch)
     ld.add_action(laser_scan_launch)
     ld.add_action(slam_launch)
     ld.add_action(nav2_launch)

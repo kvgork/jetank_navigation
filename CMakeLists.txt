@@ -33,9 +33,17 @@ ament_target_dependencies(laser_data_node
   tf2_geometry_msgs
 )
 
+# Build ICM-20948 IMU node (Waveshare IMX219-83 stereo camera module)
+add_executable(icm20948_node src/icm20948_node.cpp)
+ament_target_dependencies(icm20948_node
+  rclcpp
+  sensor_msgs
+)
+
 # Install executables
 install(TARGETS
   laser_data_node
+  icm20948_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

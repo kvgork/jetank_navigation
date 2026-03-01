@@ -1,0 +1,26 @@
+# ICM-20948 IMU Configuration
+# Part of the Waveshare IMX219-83 Stereo Camera module
+# Connected via I2C to Jetson Orin Nano (pins 3/5 = /dev/i2c-7)
+#
+# Hardware: InvenSense ICM-20948 9-axis IMU
+#   - 3-axis accelerometer (±2g default)
+#   - 3-axis gyroscope (±250°/s default)
+#   - 3-axis magnetometer via AK09916 (±4900µT)
+#
+# Setup:
+#   sudo usermod -aG i2c $USER
+#   i2cdetect -y -r 7   # Should show device at 0x68
+
+icm20948_imu:
+  ros__parameters:
+    # Hardware
+    i2c_bus: 7           # /dev/i2c-7 (Jetson Orin Nano 40-pin header pins 3/5)
+    i2c_address: 0x68    # Default address (AD0 pin LOW)
+
+    # Sensor ranges
+    accel_range: 2       # Accelerometer: 2, 4, 8, or 16 (g)
+    gyro_range: 250      # Gyroscope: 250, 500, 1000, or 2000 (deg/s)
+
+    # Publishing
+    publish_rate: 100.0  # Hz (max ~225 Hz for accel, ~220 Hz for gyro)
+    frame_id: "imu_link"

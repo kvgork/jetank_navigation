@@ -67,7 +67,7 @@ def generate_launch_description():
 
     declare_lidar_source_cmd = DeclareLaunchArgument(
         'lidar_source',
-        default_value='pointcloud',
+        default_value='rplidar',
         description='LiDAR source: "pointcloud" (stereo camera) or "rplidar" (hardware)')
 
     # Condition for using pointcloud (stereo camera)

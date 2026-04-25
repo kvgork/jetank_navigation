@@ -14,7 +14,7 @@
 icm20948_imu:
   ros__parameters:
     # Hardware
-    i2c_bus: 7           # /dev/i2c-7 (Jetson Orin Nano 40-pin header pins 3/5)
+    i2c_bus: 1           # /dev/i2c-1 (confirmed by i2cdetect -y -r 1, device at 0x68)
     i2c_address: 0x68    # Default address (AD0 pin LOW)
 
     # Sensor ranges

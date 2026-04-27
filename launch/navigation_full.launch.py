@@ -112,7 +112,7 @@ def generate_launch_description():
     # 4. LaserScan source (hardware RPLidar via laser_data_node relay)
     laser_scan_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_nav, 'launch', 'laser_scan_converter.launch.py')
+            os.path.join(pkg_jetank_nav, 'launch', 'lidar.launch.py')
         )
     )
 

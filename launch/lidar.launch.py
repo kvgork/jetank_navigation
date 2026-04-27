@@ -5,7 +5,7 @@ Launch file for hardware LiDAR laser scan.
 Launches the RPLidar hardware driver which publishes directly to /scan.
 
 Usage:
-  ros2 launch jetank_navigation laser_scan_converter.launch.py
+  ros2 launch jetank_navigation lidar.launch.py
 """
 
 from launch import LaunchDescription

@@ -21,7 +21,7 @@
 rplidar_node:
   ros__parameters:
     channel_type: "serial"
-    serial_port: "/dev/rplidar"
+    serial_port: "/dev/ttyUSB0"
     serial_baudrate: 460800
     frame_id: "laser"
     inverted: false

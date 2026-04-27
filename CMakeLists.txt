@@ -8,30 +8,10 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
-
-# Build laser_data_node executable
-add_executable(laser_data_node src/laser_data_node.cpp)
-
-ament_target_dependencies(laser_data_node
-  rclcpp
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  nav_msgs
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-)
 
 # Build ICM-20948 IMU node (Waveshare IMX219-83 stereo camera module)
 add_executable(icm20948_node src/icm20948_node.cpp)
@@ -42,7 +22,6 @@ ament_target_dependencies(icm20948_node
 
 # Install executables
 install(TARGETS
-  laser_data_node
   icm20948_node
   DESTINATION lib/${PROJECT_NAME}
 )

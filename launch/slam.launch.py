@@ -72,7 +72,7 @@ def generate_launch_description():
 
     declare_lidar_source_cmd = DeclareLaunchArgument(
         'lidar_source',
-        default_value='pointcloud',
+        default_value='rplidar',
         description='LiDAR source: "pointcloud" or "rplidar"')
 
     declare_slam_params_file_cmd = DeclareLaunchArgument(

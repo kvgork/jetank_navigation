@@ -109,12 +109,11 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': use_sim_time}.items()
     )
 
-    # 4. LaserScan source (pointcloud conversion or rplidar)
+    # 4. LaserScan source (hardware RPLidar via laser_data_node relay)
     laser_scan_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_jetank_nav, 'launch', 'laser_scan_converter.launch.py')
-        ),
-        launch_arguments={'lidar_source': lidar_source}.items()
+        )
     )
 
     # 5a. SLAM Toolbox (mapping mode)

@@ -47,6 +47,69 @@ bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
     use_sim_time: False
 
+amcl:
+  ros__parameters:
+    use_sim_time: False
+
+    # Filter parameters
+    min_particles: 500
+    max_particles: 2000
+
+    # KLD sampling
+    pf_err: 0.05
+    pf_z: 0.99
+
+    # Update thresholds
+    update_min_d: 0.1      # Min translation before update (m)
+    update_min_a: 0.2      # Min rotation before update (rad)
+
+    # Resample parameters
+    resample_interval: 1
+    recovery_alpha_slow: 0.0
+    recovery_alpha_fast: 0.0
+
+    # Frame IDs
+    global_frame_id: "map"
+    odom_frame_id: "odom"
+    base_frame_id: "base_link"
+
+    # TF broadcast
+    tf_broadcast: true
+    transform_tolerance: 1.0
+
+    # Laser model (sized for RPLidar C1M1: 0.05-12 m)
+    laser_model_type: "likelihood_field"
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 12.0
+    laser_min_range: 0.05
+    max_beams: 60
+
+    # Likelihood field
+    z_hit: 0.5
+    z_rand: 0.5
+    z_max: 0.05
+    z_short: 0.05
+    sigma_hit: 0.2
+
+    # Differential-drive odom model
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
+
+    # Initial pose (set via the RViz "2D Pose Estimate" tool)
+    set_initial_pose: false
+    always_reset_initial_pose: false
+    first_map_only: false
+
+    # Topics
+    scan_topic: scan
+    map_topic: map
+
+    save_pose_rate: 0.5
+
 controller_server:
   ros__parameters:
     use_sim_time: False
@@ -272,33 +335,3 @@ velocity_smoother:
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-
-collision_monitor:
-  ros__parameters:
-    use_sim_time: False
-    base_frame_id: "base_link"
-    odom_frame_id: "odom"
-    cmd_vel_in_topic: "cmd_vel_smoothed"
-    cmd_vel_out_topic: "cmd_vel"
-    state_topic: "collision_monitor_state"
-    transform_tolerance: 0.2
-    source_timeout: 1.0
-    base_shift_correction: True
-    stop_pub_timeout: 2.0
-    polygons: ["FootprintApproach"]
-    FootprintApproach:
-      type: "polygon"
-      action_type: "approach"
-      footprint_topic: "/local_costmap/published_footprint"
-      time_before_collision: 1.2
-      simulation_time_step: 0.1
-      min_points: 6
-      visualize: False
-      enabled: True
-    observation_sources: ["scan"]
-    scan:
-      type: "scan"
-      topic: "scan"
-      min_height: 0.05
-      max_height: 2.0
-      enabled: True

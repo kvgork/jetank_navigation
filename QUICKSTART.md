@@ -6,37 +6,32 @@ Get up and running with autonomous navigation in 5 minutes.
 
 ✅ ROS2 Humble installed
 ✅ JeTank robot assembled
-✅ Stereo camera calibrated
-✅ Motor controller configured
+✅ RPLidar C1M1 connected (USB serial)
+✅ Motor controller configured (publishes `/odom`, consumes `/cmd_vel`)
 
 ## Step 1: Build (2 minutes)
 
 ```bash
-cd ~/workspaces/ros2_ws
+cd ~/ros2_ws
 colcon build --packages-select jetank_navigation
 source install/setup.bash
 ```
 
 **Expected output**: `Finished <<< jetank_navigation [X.Xs]`
 
-## Step 2: First Run - Test Components (2 minutes)
-
-### Test LaserScan Conversion
+## Step 2: First Run - Test the LiDAR (1 minute)
 
 ```bash
-# Terminal 1: Launch camera
-ros2 launch jetank_ros2_main stereo_camera.launch.py
+# Terminal 1: Launch the RPLidar
+ros2 launch jetank_navigation lidar.launch.py
 
-# Terminal 2: Launch converter
-ros2 launch jetank_navigation laser_scan_converter.launch.py
-
-# Terminal 3: Check output
+# Terminal 2: Check the scan stream
 ros2 topic hz /scan
 ```
 
-**Expected**: `average rate: ~30.000`
+**Expected**: `average rate: ~10.000` (RPLidar C1M1 scans at 10 Hz)
 
-✅ If you see scan data, conversion is working!
+✅ If you see scan data, the lidar is working.
 
 ## Step 3: Create Your First Map (10 minutes)
 
@@ -59,9 +54,9 @@ ros2 launch jetank_navigation navigation_full.launch.py mode:=slam
 
 **Save the map**:
 ```bash
-# In new terminal
-source install/setup.bash
-ros2 run jetank_navigation save_map.sh test_map
+# In a new terminal
+source ~/ros2_ws/install/setup.bash
+~/ros2_ws/install/jetank_navigation/lib/jetank_navigation/save_map.sh test_map
 ```
 
 **Output**: Map saved to `~/maps/test_map.yaml`
@@ -97,10 +92,10 @@ ros2 launch jetank_navigation navigation_full.launch.py \
 **Check**:
 ```bash
 ros2 topic list | grep scan
-ros2 topic hz /stereo_camera/points
+ros2 topic hz /scan
 ```
 
-**Fix**: Ensure camera is running
+**Fix**: Make sure the RPLidar is plugged in and `lidar.launch.py` is running.
 
 ### ❌ Map not building
 
@@ -154,8 +149,8 @@ ros2 launch jetank_navigation navigation_full.launch.py mode:=slam
 # Nav2 mode (navigation)
 ros2 launch jetank_navigation navigation_full.launch.py mode:=nav2 map:=$HOME/maps/my_map.yaml
 
-# Save map
-ros2 run jetank_navigation save_map.sh <name>
+# Save map (runs the installed script directly)
+~/ros2_ws/install/jetank_navigation/lib/jetank_navigation/save_map.sh <name>
 
 # Check topics
 ros2 topic list

@@ -206,7 +206,7 @@ install(DIRECTORY
 ### 1.3 Build and Test
 
 ```bash
-cd /home/koen/workspaces/ros2_ws
+cd ~/ros2_ws
 colcon build --packages-select jetank_navigation
 source install/setup.bash
 
@@ -891,7 +891,7 @@ jetank_navigation/
 
 ### Build
 ```bash
-cd /home/koen/workspaces/ros2_ws
+cd ~/ros2_ws
 colcon build --packages-select jetank_navigation
 source install/setup.bash
 ```

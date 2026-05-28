@@ -25,7 +25,8 @@ slam_toolbox:
     ceres_loss_function: None
 
     # ROS Parameters
-    map_file_name: /home/koen/maps/jetank_map
+    # Map serialization path - override with a launch argument for a different location
+    map_file_name: maps/jetank_map
     map_start_pose: [0.0, 0.0, 0.0]
     map_start_at_dock: true
 

@@ -292,7 +292,7 @@ jetank_navigation/
 **Building Activity**: Create the package structure
 
 ```bash
-cd /home/koen/workspaces/ros2_ws/src
+cd ~/ros2_ws/src
 ros2 pkg create jetank_navigation --build-type ament_cmake \
   --dependencies rclcpp sensor_msgs tf2_ros tf2_geometry_msgs
 ```

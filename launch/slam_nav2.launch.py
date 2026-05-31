@@ -45,9 +45,12 @@ def generate_launch_description():
 
     # Nav2 navigation-only (controller/planner/behaviors/bt_navigator/smoother
     # + lifecycle_manager_navigation). No localization — slam_toolbox supplies it.
+    # Uses our navigation_only.launch.py (not upstream navigation_launch.py) so the
+    # lifecycle_manager gets bond_timeout:=0.0 — otherwise the stack tears itself
+    # down a few seconds after bringup under heavy load and rejects all goals.
     nav2 = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(PathJoinSubstitution([
-            FindPackageShare('nav2_bringup'), 'launch', 'navigation_launch.py'])),
+        PythonLaunchDescriptionSource(os.path.join(
+            pkg_nav, 'launch', 'navigation_only.launch.py')),
         launch_arguments={
             'use_sim_time': use_sim_time,
             'params_file': params_file,

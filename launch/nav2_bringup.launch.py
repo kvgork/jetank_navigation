@@ -211,7 +211,12 @@ def generate_launch_description():
             arguments=['--ros-args', '--log-level', log_level],
             parameters=[{'use_sim_time': use_sim_time},
                        {'autostart': autostart},
-                       {'node_names': lifecycle_nodes}]),
+                       {'node_names': lifecycle_nodes},
+                       # Disable the lifecycle bond timeout: under heavy load a node
+                       # misses its heartbeat and the manager would otherwise tear
+                       # the whole stack down (bt_navigator -> inactive -> goals
+                       # rejected). See navigation_only.launch.py for the same fix.
+                       {'bond_timeout': 0.0}]),
     ])
 
     # Create the launch description and populate

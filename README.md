@@ -11,6 +11,54 @@ This package provides a complete navigation solution for the JeTank robot, inclu
 - **Autonomous navigation** - Navigate to goals using Nav2 stack with AMCL localization
 - **Full system integration** - Launch complete autonomous navigation with a single command
 
+## Running in Simulation (Gazebo)
+
+> Most of this README describes the **real-robot** path. For Gazebo, the robot
+> model already publishes a real `gpu_lidar` `/scan` (not the stereo→scan
+> converter) and `/imu`, and `gz_ros2_control` provides odometry.
+
+`navigation_full.launch.py` is **sim-aware**: with `use_sim_time:=true` it
+**skips the hardware bringup** (urdf/motor/IMU/RPLidar — gated behind
+`UnlessCondition(use_sim_time)`) and consumes Gazebo's topics instead. Without
+that flag it spawns the hardware nodes (a second `robot_state_publisher` and the
+motor driver, which spams I2C errors in sim).
+
+```bash
+# 1) start the sim (separate terminal): Gazebo + robot + sensors + controllers
+ros2 launch jetank_ros_main gazebo_sim.launch.py world:=obstacle_course
+
+# 2) SLAM against the simulated lidar
+ros2 launch jetank_navigation navigation_full.launch.py mode:=slam use_sim_time:=true
+
+# 2') Nav2 with a saved map
+ros2 launch jetank_navigation navigation_full.launch.py mode:=nav2 use_sim_time:=true map:=<map.yaml>
+```
+
+Or use the all-in-one `ros2 launch jetank_ros_main sim_demo.launch.py`
+(Gazebo + unified.rviz + SLAM). slam_toolbox subscribes to `/scan`, publishes
+`/map`, and `map → odom`; verified building a ~5.3 m map in `obstacle_course`.
+
+### Sim launch files used by the web control
+
+- **`slam_nav2.launch.py`** — slam_toolbox (online mapping = `/map` + `map→odom`)
+  **+** `navigation_only.launch.py`. The web "Start Mapping" entry; you can map and
+  navigate at the same time (no AMCL).
+- **`navigation_only.launch.py`** — Nav2 navigation stack (controller / smoother /
+  planner / behaviors / bt_navigator / waypoint / velocity_smoother) **with NO**
+  map_server/AMCL, and the lifecycle_manager set to **`bond_timeout: 0.0`**.
+  Upstream `nav2_bringup/navigation_launch.py` does not pass the params file to its
+  lifecycle_manager, and under heavy sim load a missed bond heartbeat (default 4 s)
+  tears the whole stack down → bt_navigator flaps to inactive → goals rejected.
+  `bond_timeout: 0.0` disables that.
+- **`nav2_bringup.launch.py`** — full localization + navigation (map_server + AMCL).
+  Used by the web "Navigate (saved map)". Also given `bond_timeout: 0.0`, and AMCL
+  has `set_initial_pose` + `initial_pose` (0,0,0) so it can self-localize at the
+  robot spawn. The web node additionally publishes `/initialpose` until AMCL
+  converges (the param alone is not always honored through RewrittenYaml).
+
+Costmaps use `robot_radius: 0.12` and `inflation_radius: 0.18` tuned for the small
+JeTank footprint.
+
 ## Features
 
 ### ✅ Implemented

@@ -30,6 +30,16 @@ amcl:
   ros__parameters:
     use_sim_time: False
 
+    # Auto-set the initial pose at startup so AMCL publishes map->odom without a
+    # manual "2D Pose Estimate". The robot spawns at the map origin (0,0,0) in
+    # sim; override via /initialpose (RViz) or this pose for other start points.
+    set_initial_pose: true
+    initial_pose:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+      yaw: 0.0
+
     # Filter parameters
     min_particles: 500
     max_particles: 2000

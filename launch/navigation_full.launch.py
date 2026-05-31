@@ -24,7 +24,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
@@ -60,19 +60,28 @@ def generate_launch_description():
         default_value='True',
         description='Launch RViz visualisation')
 
+    # Hardware bringup (items 1-4) only runs on the real robot. In simulation
+    # (use_sim_time:=true) Gazebo already provides robot_state_publisher, the
+    # /scan, /imu and /odom topics, and gz_ros2_control — so launching the
+    # hardware nodes here would spawn a second robot_state_publisher and a
+    # motor driver that spams I2C errors and publishes invalid JointStates.
+    # Gate them behind UnlessCondition(use_sim_time).
+
     # 1. Robot state publisher (URDF/TF tree) — always includes RPLidar frame
     urdf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_jetank_main, 'launch', 'urdf.launch.py')
         ),
         launch_arguments={'use_sim_time': use_sim_time}.items(),
+        condition=UnlessCondition(use_sim_time),
     )
 
     # 2. Motor controller (publishes /odom, subscribes to /cmd_vel)
     motor_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_jetank_main, 'launch', 'motor_controller.launch.py')
-        )
+        ),
+        condition=UnlessCondition(use_sim_time),
     )
 
     # 3. IMU (ICM-20948 on the Waveshare IMX219-83 stereo camera module)
@@ -81,13 +90,15 @@ def generate_launch_description():
             os.path.join(pkg_jetank_nav, 'launch', 'imu.launch.py')
         ),
         launch_arguments={'use_sim_time': use_sim_time}.items(),
+        condition=UnlessCondition(use_sim_time),
     )
 
     # 4. RPLidar (hardware driver publishing /scan)
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_jetank_nav, 'launch', 'lidar.launch.py')
-        )
+        ),
+        condition=UnlessCondition(use_sim_time),
     )
 
     # 5a. SLAM Toolbox (mapping mode)

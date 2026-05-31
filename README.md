@@ -11,6 +11,33 @@ This package provides a complete navigation solution for the JeTank robot, inclu
 - **Autonomous navigation** - Navigate to goals using Nav2 stack with AMCL localization
 - **Full system integration** - Launch complete autonomous navigation with a single command
 
+## Running in Simulation (Gazebo)
+
+> Most of this README describes the **real-robot** path. For Gazebo, the robot
+> model already publishes a real `gpu_lidar` `/scan` (not the stereo→scan
+> converter) and `/imu`, and `gz_ros2_control` provides odometry.
+
+`navigation_full.launch.py` is **sim-aware**: with `use_sim_time:=true` it
+**skips the hardware bringup** (urdf/motor/IMU/RPLidar — gated behind
+`UnlessCondition(use_sim_time)`) and consumes Gazebo's topics instead. Without
+that flag it spawns the hardware nodes (a second `robot_state_publisher` and the
+motor driver, which spams I2C errors in sim).
+
+```bash
+# 1) start the sim (separate terminal): Gazebo + robot + sensors + controllers
+ros2 launch jetank_ros_main gazebo_sim.launch.py world:=obstacle_course
+
+# 2) SLAM against the simulated lidar
+ros2 launch jetank_navigation navigation_full.launch.py mode:=slam use_sim_time:=true
+
+# 2') Nav2 with a saved map
+ros2 launch jetank_navigation navigation_full.launch.py mode:=nav2 use_sim_time:=true map:=<map.yaml>
+```
+
+Or use the all-in-one `ros2 launch jetank_ros_main sim_demo.launch.py`
+(Gazebo + unified.rviz + SLAM). slam_toolbox subscribes to `/scan`, publishes
+`/map`, and `map → odom`; verified building a ~5.3 m map in `obstacle_course`.
+
 ## Features
 
 ### ✅ Implemented

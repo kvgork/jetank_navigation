@@ -382,25 +382,61 @@ rviz2
 # Add LaserScan display on topic /scan
 ```
 
-## Topics
+## ROS 2 API
 
-### Subscribed
+> **Note:** earlier revisions of this README described a `laser_data_node`
+> PointCloud2→LaserScan converter and a `/stereo_camera/points` input. That is
+> obsolete — in the current build the sim/real lidar publishes `/scan` directly
+> (`gpu_lidar` / RPLidar) and the only node this package *builds itself* is the
+> IMU driver. The section below is generated from the actual source + launch
+> files.
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/stereo_camera/points` | sensor_msgs/PointCloud2 | Input point cloud from stereo camera |
-| `/odom` | nav_msgs/Odometry | Robot odometry from motor controller |
+This package builds exactly **one** runtime node of its own — the ICM-20948 IMU driver (`icm20948_node`). All other navigation/SLAM/LiDAR functionality is delivered by *launching third-party nodes* (`slam_toolbox`, the `nav2_*` stack, `rplidar_ros`) via this package's launch files; those nodes' interfaces belong to their upstream packages and are not redefined here. This package declares **no** custom messages, services, or actions.
 
-### Published
+### Nodes (built by this package)
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/scan` | sensor_msgs/LaserScan | Generated 2D laser scan |
-| `/map` | nav_msgs/OccupancyGrid | SLAM-generated map (SLAM mode) |
-| `/particle_cloud` | geometry_msgs/PoseArray | AMCL particles (Nav2 mode) |
-| `/plan` | nav_msgs/Path | Global navigation plan |
-| `/local_plan` | nav_msgs/Path | Local navigation plan |
-| `/cmd_vel` | geometry_msgs/Twist | Velocity commands to motors |
+| Node name | Executable | Role |
+|---|---|---|
+| `icm20948_imu` | `icm20948_node` | InvenSense ICM-20948 9-axis IMU driver. Reads accelerometer, gyroscope, magnetometer (AK09916) and die temperature over I2C and publishes them. |
+
+### Published topics (`icm20948_imu`)
+
+| Topic | Type |
+|---|---|
+| `imu/data_raw` | `sensor_msgs/msg/Imu` |
+| `imu/magnetic_field` | `sensor_msgs/msg/MagneticField` |
+| `imu/temperature` | `sensor_msgs/msg/Temperature` |
+
+`Imu.orientation_covariance[0]` is set to `-1` (no orientation estimate — raw accel/gyro only); accel and gyro carry diagonal covariances from datasheet noise specs; `Temperature` is published at 1/10 the IMU rate.
+
+### Parameters (`icm20948_imu`)
+
+| Parameter | Type | Node default | Launched value (`config/icm20948.yaml`) |
+|---|---|---|---|
+| `i2c_bus` | int | `7` | `1` (`/dev/i2c-1`) |
+| `i2c_address` | int | `0x68` | `0x68` |
+| `frame_id` | string | `imu_link` | `imu_link` |
+| `publish_rate` | double (Hz) | `100.0` | `100.0` |
+
+### Launch entrypoints (start third-party nodes)
+
+| Launch file | Brings up |
+|---|---|
+| `imu.launch.py` | `icm20948_imu` (this package's node) with `config/icm20948.yaml` |
+| `rplidar.launch.py` / `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
+| `slam.launch.py` | `slam_toolbox/async_slam_toolbox_node` (subscribes `/scan`, publishes `/map`, provides `map → odom`) |
+| `nav2_bringup.launch.py` | Full Nav2 + localization: `map_server`, `amcl`, `controller_server`, `planner_server`, `behavior_server`, `bt_navigator`, `waypoint_follower`, `velocity_smoother`, `lifecycle_manager` |
+| `navigation_only.launch.py` | Nav2 **without** `map_server`/`amcl` (expects SLAM to supply `map → odom`) |
+| `slam_nav2.launch.py` | `slam.launch.py` + `navigation_only.launch.py` (live map + navigate) |
+| `navigation_full.launch.py` | Real robot (gated by `UnlessCondition(use_sim_time)`): URDF + motor controller + `imu` + `lidar`, then SLAM (`mode:=slam`) **or** Nav2 (`mode:=nav2`), plus optional RViz |
+
+### Key wire names set in launch + `config/nav2/nav2_params.yaml`
+
+These are upstream Nav2 nodes; the names below are how this package wires them:
+
+- `controller_server`: `cmd_vel` → `cmd_vel_nav`; `velocity_smoother` outputs the final velocity on `/cmd_vel` (input `cmd_vel_nav`, output `cmd_vel_smoothed` → `cmd_vel`).
+- `slam_toolbox`: `scan_topic: /scan`, frames `map`/`odom`/`base_link`.
+- Nav2 costmaps: observation source `scan` on `/scan`, `odom_topic: /odom`, `robot_radius: 0.12`, `inflation_radius: 0.18`.
 
 ## Troubleshooting
 

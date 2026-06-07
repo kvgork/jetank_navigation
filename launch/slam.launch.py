@@ -17,7 +17,6 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     """Generate launch description for SLAM Toolbox."""
-
     pkg_jetank_nav = get_package_share_directory('jetank_navigation')
     default_slam_config = os.path.join(
         pkg_jetank_nav, 'config', 'slam', 'slam_toolbox.yaml')

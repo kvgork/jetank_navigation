@@ -6,7 +6,8 @@ Camera module. The IMU is connected via I2C to the Jetson Orin Nano 40-pin
 header (pins 3/5 = /dev/i2c-7).
 
 The node publishes:
-  - imu/data_raw       (sensor_msgs/Imu)            Raw accelerometer and gyroscope data, no orientation
+  - imu/data_raw       (sensor_msgs/Imu)            Raw accelerometer and gyroscope data,
+                                                    no orientation
   - imu/magnetic_field (sensor_msgs/MagneticField)   Raw magnetometer data from AK09916
   - imu/temperature    (sensor_msgs/Temperature)     IMU die temperature
 

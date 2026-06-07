@@ -67,6 +67,11 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  # Pure-logic unit tests for include/jetank_navigation/utils.hpp.
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_utils test/test_utils.cpp)
+  target_include_directories(test_utils PRIVATE include)
 endif()
 
 ament_package()

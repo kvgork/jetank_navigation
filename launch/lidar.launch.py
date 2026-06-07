@@ -18,7 +18,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     rplidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare('jetank_navigation'), 'launch', 'rplidar.launch.py'])
+            PathJoinSubstitution(
+                [FindPackageShare('jetank_navigation'), 'launch', 'rplidar.launch.py'])
         )
     )
 

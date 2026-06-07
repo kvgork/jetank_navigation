@@ -15,45 +15,39 @@ Launches the complete Nav2 stack including:
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, SetEnvironmentVariable
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch_ros.actions import LoadComposableNodes, Node
-from launch_ros.descriptions import ComposableNode
+from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
     """Generate launch description for Nav2 stack."""
-
     # Get package directories
     pkg_jetank_nav = get_package_share_directory('jetank_navigation')
-    pkg_nav2_bringup = get_package_share_directory('nav2_bringup')
 
     # Launch configuration variables
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
     params_file = LaunchConfiguration('params_file')
-    use_composition = LaunchConfiguration('use_composition')
-    container_name = LaunchConfiguration('container_name')
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
     map_yaml_file = LaunchConfiguration('map')
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended
     lifecycle_nodes = ['map_server',
-                      'amcl',
-                      'controller_server',
-                      'planner_server',
-                      'behavior_server',
-                      'bt_navigator',
-                      'waypoint_follower',
-                      'velocity_smoother']
+                       'amcl',
+                       'controller_server',
+                       'planner_server',
+                       'behavior_server',
+                       'bt_navigator',
+                       'waypoint_follower',
+                       'velocity_smoother']
 
     # Remappings
     remappings = [('/tf', 'tf'),
-                 ('/tf_static', 'tf_static')]
+                  ('/tf_static', 'tf_static')]
 
     # Create our own temporary YAML files that include substitutions
     param_substitutions = {
@@ -200,8 +194,8 @@ def generate_launch_description():
             respawn_delay=2.0,
             parameters=[configured_params],
             arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings +
-                       [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]),
+            remappings=(remappings +
+                        [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')])),
 
         Node(
             package='nav2_lifecycle_manager',
@@ -210,13 +204,13 @@ def generate_launch_description():
             output='screen',
             arguments=['--ros-args', '--log-level', log_level],
             parameters=[{'use_sim_time': use_sim_time},
-                       {'autostart': autostart},
-                       {'node_names': lifecycle_nodes},
-                       # Disable the lifecycle bond timeout: under heavy load a node
-                       # misses its heartbeat and the manager would otherwise tear
-                       # the whole stack down (bt_navigator -> inactive -> goals
-                       # rejected). See navigation_only.launch.py for the same fix.
-                       {'bond_timeout': 0.0}]),
+                        {'autostart': autostart},
+                        {'node_names': lifecycle_nodes},
+                        # Disable the lifecycle bond timeout: under heavy load a node
+                        # misses its heartbeat and the manager would otherwise tear
+                        # the whole stack down (bt_navigator -> inactive -> goals
+                        # rejected). See navigation_only.launch.py for the same fix.
+                        {'bond_timeout': 0.0}]),
     ])
 
     # Create the launch description and populate

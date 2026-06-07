@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Full navigation launch for the JeTank robot.
+r"""Full navigation launch for the JeTank robot.
 
 Launches the complete autonomous-navigation stack against the RPLidar:
   - Robot state publisher (URDF/TF tree)
@@ -15,7 +15,7 @@ Usage::
     ros2 launch jetank_navigation navigation_full.launch.py mode:=slam
 
     # Navigate using a saved map
-    ros2 launch jetank_navigation navigation_full.launch.py \\
+    ros2 launch jetank_navigation navigation_full.launch.py \
         mode:=nav2 map:=$HOME/maps/jetank_map.yaml
 """
 
@@ -31,7 +31,6 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 
 def generate_launch_description():
     """Generate launch description for the full navigation system."""
-
     pkg_jetank_nav = get_package_share_directory('jetank_navigation')
     pkg_jetank_main = get_package_share_directory('jetank_ros_main')
 

@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """SLAM + Nav2 (navigation-only) for live mapping AND navigation at once.
 
+LEGACY: combined SLAM+nav2 shifts the live map under loop-closure; the web UI
+now uses slam.launch.py (mapping only) and nav2_bringup.launch.py (saved-map
+nav) separately.
+
 slam_toolbox (async, mapping mode) provides both the live ``/map`` and the
 ``map -> odom`` transform, so Nav2 runs **navigation-only** (no AMCL, no
 map_server) via the upstream ``nav2_bringup/navigation_launch.py``. This lets

@@ -219,6 +219,26 @@ ros2 launch jetank_navigation navigation_full.launch.py \
 Key small-robot values already set: `robot_radius: 0.12`, `inflation_radius: 0.18`,
 costmap observation source `scan` on `/scan`, `odom_topic: /odom`.
 
+### Localization tuning (AMCL)
+
+`nav2_params.yaml` ships a Phase-2 AMCL tune for the small (~5 m) room. The
+likelihood field is **sharpened** so map-matching dominates and the filter locks
+heading instead of drifting: `laser_likelihood_max_dist: 0.4` (a 2.0 m field
+blurred ~half the room), `z_hit: 0.85` / `z_rand: 0.05` (lean on the map, not the
+uniform model), `sigma_hit: 0.08`, `max_beams: 120`, `laser_max_range: 9.0`, and
+tighter update thresholds (`update_min_d: 0.05`, `update_min_a: 0.1`) for more
+frequent updates in a small space.
+
+Goal tolerance is raised to **0.25 m** (`general_goal_checker` and DWB `FollowPath`
+`xy_goal_tolerance`, was 0.10) so the base reliably reaches goals rather than
+stalling just short of them.
+
+> `set_initial_pose` is declared once (in the AMCL block, `=true`) so AMCL
+> self-localizes at the map origin on startup — do **not** re-declare it lower in
+> the file; a duplicate key makes YAML keep the last value (`false`), which
+> silently kills auto-init (no `map → odom`, every goal rejected with "Invalid
+> frame ID map"). Override at runtime via `/initialpose`.
+
 ## Troubleshooting
 
 **No `/scan`** — check the lidar driver: `ros2 topic hz /scan`; on real hardware
@@ -230,7 +250,9 @@ Gazebo `gpu_lidar` and the `ros_gz` bridge.
 maps that to `/diff_drive_controller/cmd_vel` (TwistStamped).
 
 **AMCL won't localize** — set a better initial pose (or publish `/initialpose`);
-check `map → odom → base_link` is complete (`ros2 run tf2_tools view_frames`).
+check `map → odom → base_link` is complete (`ros2 run tf2_tools view_frames`). The
+likelihood field is deliberately sharp (`laser_likelihood_max_dist: 0.4`) — see
+*Localization tuning (AMCL)* above; widen it if you move to a larger space.
 
 **Nav2 stack tears down under load** — ensure `bond_timeout: 0.0` is applied (see
 the sim launch notes above).

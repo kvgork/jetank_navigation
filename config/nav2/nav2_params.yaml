@@ -49,8 +49,9 @@ amcl:
     pf_z: 0.99
 
     # Update thresholds
-    update_min_d: 0.1      # Min translation before update (m)
-    update_min_a: 0.2      # Min rotation before update (rad)
+    # Phase 2 (localization tuning): more frequent updates in a small room.
+    update_min_d: 0.05     # Min translation before update (m)
+    update_min_a: 0.1      # Min rotation before update (rad)
 
     # Resample parameters
     resample_interval: 1
@@ -67,18 +68,20 @@ amcl:
     transform_tolerance: 1.0
 
     # Laser model (sized for RPLidar C1M1: 0.05-12 m)
+    # Phase 2 (localization tuning): sharpen the likelihood field so map-matching
+    # dominates and the filter locks heading. 2.0 m blurred ~half a 5 m room.
     laser_model_type: "likelihood_field"
-    laser_likelihood_max_dist: 2.0
-    laser_max_range: 12.0
+    laser_likelihood_max_dist: 0.4
+    laser_max_range: 9.0
     laser_min_range: 0.05
-    max_beams: 60
+    max_beams: 120
 
-    # Likelihood field
-    z_hit: 0.5
-    z_rand: 0.5
+    # Likelihood field — Phase 2: let map-matching dominate the uniform model.
+    z_hit: 0.85
+    z_rand: 0.05
     z_max: 0.05
     z_short: 0.05
-    sigma_hit: 0.2
+    sigma_hit: 0.08
 
     # Differential-drive odom model
     robot_model_type: "nav2_amcl::DifferentialMotionModel"
@@ -88,8 +91,11 @@ amcl:
     alpha4: 0.2
     alpha5: 0.2
 
-    # Initial pose (set via the RViz "2D Pose Estimate" tool)
-    set_initial_pose: false
+    # NOTE: set_initial_pose is configured above (line ~36, =true) so AMCL
+    # self-localizes at the map origin on startup. Do NOT re-declare it here —
+    # a duplicate key makes YAML take the last value (false), which silently
+    # disables auto-init and AMCL never publishes map->odom (Nav2 then rejects
+    # every goal with "Invalid frame ID map"). Override at runtime via /initialpose.
     always_reset_initial_pose: false
     first_map_only: false
 
@@ -121,7 +127,7 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.10
+      xy_goal_tolerance: 0.25
       yaw_goal_tolerance: 0.15
 
     # DWB controller
@@ -148,7 +154,7 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.10
+      xy_goal_tolerance: 0.25
       trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: True
       stateful: True

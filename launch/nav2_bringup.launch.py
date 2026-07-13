@@ -1,32 +1,39 @@
 #!/usr/bin/env python3
 """
-Launch file for Nav2 navigation stack.
+Launch file for the Nav2 stack.
 
-Launches the complete Nav2 stack including:
-- Map server (for pre-built maps)
-- AMCL localization
-- Planner server
-- Controller server
-- Behavior server
-- Waypoint follower
-- Lifecycle manager
+Two modes, selected by the ``use_localization`` argument:
+
+- ``use_localization:=True`` (default) — full stack against a saved map:
+  map_server + AMCL + controller / planner / behaviors / bt_navigator /
+  waypoint_follower / velocity_smoother + lifecycle manager.
+- ``use_localization:=False`` — navigation-only: no map_server/amcl;
+  localization and ``/map`` come from slam_toolbox. This is what
+  navigation_only.launch.py (used by slam_nav2.launch.py) selects.
+
+Key difference from upstream nav2_bringup: the lifecycle_manager is given
+**bond_timeout: 0.0**. With the default 4 s bond timeout, a node that misses
+its heartbeat under heavy load (Gazebo GUI + RViz + SLAM + Nav2 on one
+machine) is declared unresponsive and the manager tears the whole stack down
+a few seconds after bringup — which made bt_navigator go active then inactive
+and reject all goals. bond_timeout 0.0 disables that.
 """
 
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, GroupAction, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from nav2_common.launch import RewrittenYaml
 
 
-def generate_launch_description():
-    """Generate launch description for Nav2 stack."""
-    # Get package directories
-    pkg_jetank_nav = get_package_share_directory('jetank_navigation')
+def launch_setup(context, *args, **kwargs):
+    """Build the Nav2 node set for the selected mode."""
+    use_localization = (
+        LaunchConfiguration('use_localization').perform(context).lower()
+        in ('true', '1'))
 
-    # Launch configuration variables
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     autostart = LaunchConfiguration('autostart')
@@ -35,17 +42,8 @@ def generate_launch_description():
     log_level = LaunchConfiguration('log_level')
     map_yaml_file = LaunchConfiguration('map')
 
-    # Map fully qualified names to relative ones so the node's namespace can be prepended
-    lifecycle_nodes = ['map_server',
-                       'amcl',
-                       'controller_server',
-                       'planner_server',
-                       'behavior_server',
-                       'bt_navigator',
-                       'waypoint_follower',
-                       'velocity_smoother']
-
-    # Remappings
+    # Map fully qualified names to relative ones so the node's namespace can
+    # be prepended.
     remappings = [('/tf', 'tf'),
                   ('/tf_static', 'tf_static')]
 
@@ -59,6 +57,85 @@ def generate_launch_description():
         root_key=namespace,
         param_rewrites=param_substitutions,
         convert_types=True)
+
+    if use_localization:
+        # Full stack against a saved map.
+        lifecycle_nodes = ['map_server',
+                           'amcl',
+                           'controller_server',
+                           'planner_server',
+                           'behavior_server',
+                           'bt_navigator',
+                           'waypoint_follower',
+                           'velocity_smoother']
+    else:
+        # No map_server / amcl — slam_toolbox provides /map and map->odom.
+        # smoother_server is only part of this (SLAM) variant, matching the
+        # historical navigation_only.launch.py node set.
+        lifecycle_nodes = ['controller_server',
+                           'smoother_server',
+                           'planner_server',
+                           'behavior_server',
+                           'bt_navigator',
+                           'waypoint_follower',
+                           'velocity_smoother']
+
+    # node name -> (package, executable, extra remappings). controller_server
+    # publishes on cmd_vel_nav; velocity_smoother turns that into the final
+    # /cmd_vel.
+    specs = {
+        'map_server': ('nav2_map_server', 'map_server', []),
+        'amcl': ('nav2_amcl', 'amcl', []),
+        'controller_server': (
+            'nav2_controller', 'controller_server',
+            [('cmd_vel', 'cmd_vel_nav')]),
+        'smoother_server': ('nav2_smoother', 'smoother_server', []),
+        'planner_server': ('nav2_planner', 'planner_server', []),
+        'behavior_server': ('nav2_behaviors', 'behavior_server', []),
+        'bt_navigator': ('nav2_bt_navigator', 'bt_navigator', []),
+        'waypoint_follower': (
+            'nav2_waypoint_follower', 'waypoint_follower', []),
+        'velocity_smoother': (
+            'nav2_velocity_smoother', 'velocity_smoother',
+            [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]),
+    }
+
+    nodes = [
+        Node(
+            package=specs[name][0],
+            executable=specs[name][1],
+            name=name,
+            output='screen',
+            respawn=use_respawn,
+            respawn_delay=2.0,
+            parameters=[configured_params],
+            arguments=['--ros-args', '--log-level', log_level],
+            remappings=remappings + specs[name][2])
+        for name in lifecycle_nodes
+    ]
+
+    nodes.append(
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_navigation',
+            output='screen',
+            arguments=['--ros-args', '--log-level', log_level],
+            parameters=[{'use_sim_time': use_sim_time},
+                        {'autostart': autostart},
+                        {'node_names': lifecycle_nodes},
+                        # Disable the lifecycle bond timeout: under heavy load
+                        # a node misses its heartbeat and the manager would
+                        # otherwise tear the whole stack down (bt_navigator ->
+                        # inactive -> goals rejected).
+                        {'bond_timeout': 0.0}]))
+
+    return [GroupAction(nodes)]
+
+
+def generate_launch_description():
+    """Generate launch description for the Nav2 stack."""
+    pkg_jetank_nav = get_package_share_directory('jetank_navigation')
 
     # Declare launch arguments
     declare_namespace_cmd = DeclareLaunchArgument(
@@ -81,16 +158,6 @@ def generate_launch_description():
         default_value='True',
         description='Automatically startup the nav2 stack')
 
-    declare_use_composition_cmd = DeclareLaunchArgument(
-        'use_composition',
-        default_value='False',
-        description='Use composed bringup if True')
-
-    declare_container_name_cmd = DeclareLaunchArgument(
-        'container_name',
-        default_value='nav2_container',
-        description='The name of the container that nodes will load in if use composition is true')
-
     declare_use_respawn_cmd = DeclareLaunchArgument(
         'use_respawn',
         default_value='False',
@@ -106,112 +173,11 @@ def generate_launch_description():
         default_value='',
         description='Full path to map yaml file to load')
 
-    # Nodes
-    load_nodes = GroupAction([
-        Node(
-            package='nav2_map_server',
-            executable='map_server',
-            name='map_server',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_controller',
-            executable='controller_server',
-            name='controller_server',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings + [('cmd_vel', 'cmd_vel_nav')]),
-
-        Node(
-            package='nav2_planner',
-            executable='planner_server',
-            name='planner_server',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_behaviors',
-            executable='behavior_server',
-            name='behavior_server',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_bt_navigator',
-            executable='bt_navigator',
-            name='bt_navigator',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_waypoint_follower',
-            executable='waypoint_follower',
-            name='waypoint_follower',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=remappings),
-
-        Node(
-            package='nav2_velocity_smoother',
-            executable='velocity_smoother',
-            name='velocity_smoother',
-            output='screen',
-            respawn=use_respawn,
-            respawn_delay=2.0,
-            parameters=[configured_params],
-            arguments=['--ros-args', '--log-level', log_level],
-            remappings=(remappings +
-                        [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')])),
-
-        Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
-            name='lifecycle_manager_navigation',
-            output='screen',
-            arguments=['--ros-args', '--log-level', log_level],
-            parameters=[{'use_sim_time': use_sim_time},
-                        {'autostart': autostart},
-                        {'node_names': lifecycle_nodes},
-                        # Disable the lifecycle bond timeout: under heavy load a node
-                        # misses its heartbeat and the manager would otherwise tear
-                        # the whole stack down (bt_navigator -> inactive -> goals
-                        # rejected). See navigation_only.launch.py for the same fix.
-                        {'bond_timeout': 0.0}]),
-    ])
+    declare_use_localization_cmd = DeclareLaunchArgument(
+        'use_localization',
+        default_value='True',
+        description='Launch map_server + AMCL (False when slam_toolbox '
+                    'provides /map and map->odom)')
 
     # Create the launch description and populate
     ld = LaunchDescription()
@@ -221,13 +187,12 @@ def generate_launch_description():
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_params_file_cmd)
     ld.add_action(declare_autostart_cmd)
-    ld.add_action(declare_use_composition_cmd)
-    ld.add_action(declare_container_name_cmd)
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_yaml_cmd)
+    ld.add_action(declare_use_localization_cmd)
 
     # Add the actions to launch all nodes
-    ld.add_action(load_nodes)
+    ld.add_action(OpaqueFunction(function=launch_setup))
 
     return ld

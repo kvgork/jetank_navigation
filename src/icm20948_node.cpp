@@ -261,10 +261,22 @@ private:
   {
     auto now = get_clock()->now();
 
-    // --- Read 14 bytes: accel(6) + temp(2) + gyro(6) ---
-    uint8_t raw[14] = {};
+    // --- Single 23-byte burst read over the contiguous Bank-0 data range ---
+    // Per the ICM-20948 register map (the constants above):
+    //   ACCEL_XOUT_H (0x2D): accel  6 bytes  -> offset 0
+    //   GYRO_XOUT_H  (0x33): gyro   6 bytes  -> offset 6
+    //   TEMP_OUT_H   (0x39): temp   2 bytes  -> offset 12
+    //   EXT_SLV_SENS_DATA_00 (0x3B): AK09916 shadow, 9 bytes -> offset 14
+    // One I2C_RDWR transaction instead of two halves the per-tick ioctls at
+    // 100 Hz. Note: this parse follows the ICM-20948 layout above (gyro before
+    // temp); WHO_AM_I is checked to be 0xEA at init, so the MPU-9250-style
+    // accel/temp/gyro ordering the old code used does not apply here.
+    constexpr size_t GYRO_OFF = GYRO_XOUT_H - ACCEL_XOUT_H;           // 6
+    constexpr size_t TEMP_OFF = TEMP_OUT_H - ACCEL_XOUT_H;            // 12
+    constexpr size_t MAG_OFF = EXT_SLV_SENS_DATA_00 - ACCEL_XOUT_H;   // 14
+    uint8_t raw[MAG_OFF + 9] = {};
     try {
-      read_bytes(ACCEL_XOUT_H, raw, 14);
+      read_bytes(ACCEL_XOUT_H, raw, sizeof(raw));
     } catch (const std::exception & e) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
@@ -280,23 +292,14 @@ private:
     int16_t ax_raw = be16s(&raw[0]);
     int16_t ay_raw = be16s(&raw[2]);
     int16_t az_raw = be16s(&raw[4]);
-    int16_t t_raw = be16s(&raw[6]);
-    int16_t gx_raw = be16s(&raw[8]);
-    int16_t gy_raw = be16s(&raw[10]);
-    int16_t gz_raw = be16s(&raw[12]);
+    int16_t gx_raw = be16s(&raw[GYRO_OFF + 0]);
+    int16_t gy_raw = be16s(&raw[GYRO_OFF + 2]);
+    int16_t gz_raw = be16s(&raw[GYRO_OFF + 4]);
+    int16_t t_raw = be16s(&raw[TEMP_OFF]);
 
-    // --- Read 9 bytes from magnetometer shadow registers ---
-    uint8_t mag_raw[9] = {};
-    try {
-      read_bytes(EXT_SLV_SENS_DATA_00, mag_raw, 9);
-    } catch (const std::exception & e) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "Failed to read magnetometer data: %s", e.what());
-    }
-
-    // mag_raw layout from AK09916: [ST1, HXL, HXH, HYL, HYH, HZL, HZH, -, ST2]
-    // Little-endian byte order
+    // Magnetometer shadow registers, layout from AK09916:
+    // [ST1, HXL, HXH, HYL, HYH, HZL, HZH, -, ST2] — little-endian byte order.
+    const uint8_t * mag_raw = &raw[MAG_OFF];
     int16_t mx_raw = static_cast<int16_t>(
       (static_cast<uint16_t>(mag_raw[2]) << 8) | mag_raw[1]);
     int16_t my_raw = static_cast<int16_t>(

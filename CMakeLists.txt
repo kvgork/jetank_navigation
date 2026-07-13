@@ -10,9 +10,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-# Include directories
-include_directories(include)
-
 # Build ICM-20948 IMU node (Waveshare IMX219-83 stereo camera module)
 add_executable(icm20948_node src/icm20948_node.cpp)
 ament_target_dependencies(icm20948_node
@@ -67,11 +64,6 @@ if(BUILD_TESTING)
   # a copyright and license is added to all source files
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
-
-  # Pure-logic unit tests for include/jetank_navigation/utils.hpp.
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_utils test/test_utils.cpp)
-  target_include_directories(test_utils PRIVATE include)
 endif()
 
 ament_package()

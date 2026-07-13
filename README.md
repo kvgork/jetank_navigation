@@ -103,7 +103,7 @@ This package builds exactly **one** runtime node of its own — the ICM-20948 IM
 | Launch file | Brings up |
 |---|---|
 | `imu.launch.py` | `icm20948_imu` (this package's node) with `config/icm20948.yaml` |
-| `rplidar.launch.py` / `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
+| `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
 | `slam.launch.py` | `slam_toolbox/async_slam_toolbox_node` (subscribes `/scan`, publishes `/map`, provides `map → odom`) |
 | `nav2_bringup.launch.py` | Full Nav2 + localization: `map_server`, `amcl`, `controller_server`, `planner_server`, `behavior_server`, `bt_navigator`, `waypoint_follower`, `velocity_smoother`, `lifecycle_manager` |
 | `navigation_only.launch.py` | Nav2 **without** `map_server`/`amcl` (expects SLAM to supply `map → odom`) |
@@ -143,8 +143,7 @@ jetank_navigation/
 │       └── slam_toolbox.yaml         # slam_toolbox configuration
 ├── launch/
 │   ├── imu.launch.py                 # ICM-20948 IMU driver
-│   ├── rplidar.launch.py             # RPLidar driver (publishes /scan)
-│   ├── lidar.launch.py               # wrapper around rplidar.launch.py
+│   ├── lidar.launch.py               # RPLidar driver (publishes /scan)
 │   ├── slam.launch.py                # slam_toolbox mapping
 │   ├── nav2_bringup.launch.py        # Nav2 + map_server + AMCL
 │   ├── navigation_only.launch.py     # Nav2 without map_server/AMCL

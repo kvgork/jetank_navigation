@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-r"""Full navigation launch for the JeTank robot.
+r"""
+Full navigation launch for the JeTank robot.
 
 Launches the complete autonomous-navigation stack against the RPLidar:
   - Robot state publisher (URDF/TF tree)

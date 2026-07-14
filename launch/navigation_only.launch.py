@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Nav2 navigation-only stack (NO localization).
+"""
+Nav2 navigation-only stack (NO localization).
 
 Thin wrapper around nav2_bringup.launch.py with ``use_localization:=False``:
 no map_server + amcl — localization and the map come from slam_toolbox

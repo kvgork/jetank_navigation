@@ -103,7 +103,7 @@ This package builds exactly **one** runtime node of its own — the ICM-20948 IM
 | Launch file | Brings up |
 |---|---|
 | `imu.launch.py` | `icm20948_imu` (this package's node) with `config/icm20948.yaml` |
-| `rplidar.launch.py` / `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
+| `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
 | `slam.launch.py` | `slam_toolbox/async_slam_toolbox_node` (subscribes `/scan`, publishes `/map`, provides `map → odom`) |
 | `nav2_bringup.launch.py` | Full Nav2 + localization: `map_server`, `amcl`, `controller_server`, `planner_server`, `behavior_server`, `bt_navigator`, `waypoint_follower`, `velocity_smoother`, `lifecycle_manager` |
 | `navigation_only.launch.py` | Nav2 **without** `map_server`/`amcl` (expects SLAM to supply `map → odom`) |
@@ -120,17 +120,10 @@ These are upstream Nav2 nodes; the names below are how this package wires them:
 
 ## Tests
 
-`test/test_utils.cpp` — gtests for the header-only math helpers in
-`include/jetank_navigation/utils.hpp` (it is the first/only consumer that
-`#include`s the header, so it also acts as a compile guard):
-
-- `DegToRadKnownValues` — `deg_to_rad` returns correct radians for 0/90/180/360/-90°.
-- `CalculateAngleIncrement` — `calculate_angle_increment` spaces N beams over `[min,max]`
-  into `N-1` equal gaps.
-- `DiagonalFovToHorizontal` — `diagonal_fov_to_horizontal` equals the diagonal FOV for a
-  square image, stretches for wider-than-tall images, and grows with aspect ratio.
-
-Run them (built and run by colcon):
+This package has no unit tests of its own — only the standard ament linters run
+under `colcon test`. (The former `utils.hpp` FOV/angle helpers and their gtests
+were leftovers from the dropped PointCloud2→LaserScan path and have been
+removed.)
 
 ```bash
 colcon test --packages-select jetank_navigation
@@ -150,8 +143,7 @@ jetank_navigation/
 │       └── slam_toolbox.yaml         # slam_toolbox configuration
 ├── launch/
 │   ├── imu.launch.py                 # ICM-20948 IMU driver
-│   ├── rplidar.launch.py             # RPLidar driver (publishes /scan)
-│   ├── lidar.launch.py               # wrapper around rplidar.launch.py
+│   ├── lidar.launch.py               # RPLidar driver (publishes /scan)
 │   ├── slam.launch.py                # slam_toolbox mapping
 │   ├── nav2_bringup.launch.py        # Nav2 + map_server + AMCL
 │   ├── navigation_only.launch.py     # Nav2 without map_server/AMCL
@@ -161,12 +153,8 @@ jetank_navigation/
 │   └── navigation.rviz               # RViz configuration
 ├── scripts/
 │   └── save_map.sh                   # Map saving utility
-├── src/
-│   └── icm20948_node.cpp             # ICM-20948 IMU driver node
-├── include/jetank_navigation/
-│   └── utils.hpp                     # Pure FOV/angle math helpers (header-only)
-└── test/
-    └── test_utils.cpp                # gtests for utils.hpp helpers
+└── src/
+    └── icm20948_node.cpp             # ICM-20948 IMU driver node
 ```
 
 ## Dependencies

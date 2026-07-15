@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""SLAM Toolbox launch file for the JeTank robot.
+"""
+SLAM Toolbox launch file for the JeTank robot.
 
 Launches SLAM Toolbox in mapping mode against the RPLidar /scan topic.
 The generated map can later be saved with the ``save_map.sh`` helper and

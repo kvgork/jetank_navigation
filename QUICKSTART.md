@@ -138,7 +138,6 @@ ros2 topic list | grep cmd_vel
 
 For detailed configuration and troubleshooting:
 - [README.md](README.md) - Complete documentation
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Technical details
 
 ## Cheat Sheet
 

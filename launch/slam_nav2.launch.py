@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""SLAM + Nav2 (navigation-only) for live mapping AND navigation at once.
+"""
+SLAM + Nav2 (navigation-only) for live mapping AND navigation at once.
 
 LEGACY: combined SLAM+nav2 shifts the live map under loop-closure; the web UI
 now uses slam.launch.py (mapping only) and nav2_bringup.launch.py (saved-map

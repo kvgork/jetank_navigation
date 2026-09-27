@@ -147,10 +147,14 @@ controller_server:
       decel_lim_x: -0.5
       decel_lim_y: 0.0
       decel_lim_theta: -1.0
-      vx_samples: 20
+      # Sample budget sized for this robot's velocity envelope (0..0.3 m/s,
+      # +/-1 rad/s): 10x20 = 200 trajectories/cycle at 20 Hz controller_frequency
+      # gives the same resolution per m/s that upstream defaults (20x40=800)
+      # assume for faster robots. Retune if oscillation is observed.
+      vx_samples: 10
       vy_samples: 0
-      vtheta_samples: 40  # was misspelled "vth_samples" (ignored by DWB, silently
-                          # defaulted to 20); corrected, value unchanged here
+      vtheta_samples: 20  # was misspelled "vth_samples" (ignored by DWB, silently
+                          # defaulted to 20) before navigation-29 corrected the key
       sim_time: 1.5
       linear_granularity: 0.05
       angular_granularity: 0.025

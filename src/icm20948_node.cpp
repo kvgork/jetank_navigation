@@ -259,6 +259,16 @@ private:
 
   void publish_imu()
   {
+    // Skip the I2C read entirely when nobody is listening on any of the
+    // three topics this node publishes. Avoids a blocking I2C_RDWR ioctl
+    // and three DDS publishes per tick (100 Hz) while idle.
+    if (imu_pub_->get_subscription_count() == 0 &&
+      mag_pub_->get_subscription_count() == 0 &&
+      temp_pub_->get_subscription_count() == 0)
+    {
+      return;
+    }
+
     auto now = get_clock()->now();
 
     // --- Single 23-byte burst read over the contiguous Bank-0 data range ---

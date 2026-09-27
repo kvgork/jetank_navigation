@@ -53,9 +53,9 @@ Or use the all-in-one `ros2 launch jetank_ros_main sim_demo.launch.py`
 - **`slam_nav2.launch.py`** — slam_toolbox (online mapping = `/map` + `map→odom`)
   **+** `navigation_only.launch.py`. The web "Start Mapping" entry; you can map and
   navigate at the same time (no AMCL).
-- **`navigation_only.launch.py`** — Nav2 navigation stack (controller / smoother /
-  planner / behaviors / bt_navigator / waypoint / velocity_smoother) **with NO**
-  map_server/AMCL, and the lifecycle_manager set to **`bond_timeout: 0.0`**.
+- **`navigation_only.launch.py`** — Nav2 navigation stack (controller /
+  planner / behaviors / bt_navigator) **with NO** map_server/AMCL, and the
+  lifecycle_manager set to **`bond_timeout: 0.0`**.
   Upstream `nav2_bringup/navigation_launch.py` does not pass the params file to its
   lifecycle_manager, and under heavy sim load a missed bond heartbeat (default 4 s)
   tears the whole stack down → bt_navigator flaps to inactive → goals rejected.
@@ -105,7 +105,7 @@ This package builds exactly **one** runtime node of its own — the ICM-20948 IM
 | `imu.launch.py` | `icm20948_imu` (this package's node) with `config/icm20948.yaml` |
 | `lidar.launch.py` | `rplidar_ros/rplidar_node` → publishes `/scan` (`frame_id: laser`) |
 | `slam.launch.py` | `slam_toolbox/async_slam_toolbox_node` (subscribes `/scan`, publishes `/map`, provides `map → odom`) |
-| `nav2_bringup.launch.py` | Full Nav2 + localization: `map_server`, `amcl`, `controller_server`, `planner_server`, `behavior_server`, `bt_navigator`, `waypoint_follower`, `velocity_smoother`, `lifecycle_manager` |
+| `nav2_bringup.launch.py` | Full Nav2 + localization: `map_server`, `amcl`, `controller_server`, `planner_server`, `behavior_server`, `bt_navigator`, `lifecycle_manager` (`waypoint_follower`/`velocity_smoother`/`smoother_server` are not launched — nothing in this workspace calls them) |
 | `navigation_only.launch.py` | Nav2 **without** `map_server`/`amcl` (expects SLAM to supply `map → odom`) |
 | `slam_nav2.launch.py` | `slam.launch.py` + `navigation_only.launch.py` (live map + navigate) |
 | `navigation_full.launch.py` | Real robot (gated by `UnlessCondition(use_sim_time)`): URDF + motor controller + `imu` + `lidar`, then SLAM (`mode:=slam`) **or** Nav2 (`mode:=nav2`), plus optional RViz |
@@ -114,7 +114,7 @@ This package builds exactly **one** runtime node of its own — the ICM-20948 IM
 
 These are upstream Nav2 nodes; the names below are how this package wires them:
 
-- `controller_server`: `cmd_vel` → `cmd_vel_nav`; `velocity_smoother` outputs the final velocity on `/cmd_vel` (input `cmd_vel_nav`, output `cmd_vel_smoothed` → `cmd_vel`).
+- `controller_server`: publishes the final velocity directly on `/cmd_vel` (no `velocity_smoother` hop; DWB's own `acc_lim_*`/`decel_lim_*` already limit acceleration).
 - `slam_toolbox`: `scan_topic: /scan`, frames `map`/`odom`/`base_link`.
 - Nav2 costmaps: observation source `scan` on `/scan`, `odom_topic: /odom`, `robot_radius: 0.12`, `inflation_radius: 0.18`.
 
@@ -233,9 +233,9 @@ stalling just short of them.
 verify the RPLidar serial port in `config/rplidar_c1m1.yaml`; in sim verify the
 Gazebo `gpu_lidar` and the `ros_gz` bridge.
 
-**Robot won't move** — confirm Nav2's final velocity reaches the base: the
-`velocity_smoother` republishes to `/cmd_vel`; in sim the web `cmd_vel_bridge`
-maps that to `/diff_drive_controller/cmd_vel` (TwistStamped).
+**Robot won't move** — confirm Nav2's final velocity reaches the base:
+`controller_server` publishes directly to `/cmd_vel`; in sim the web
+`cmd_vel_bridge` maps that to `/diff_drive_controller/cmd_vel` (TwistStamped).
 
 **AMCL won't localize** — set a better initial pose (or publish `/initialpose`);
 check `map → odom → base_link` is complete (`ros2 run tf2_tools view_frames`). The

@@ -5,11 +5,18 @@ Launch file for the Nav2 stack.
 Two modes, selected by the ``use_localization`` argument:
 
 - ``use_localization:=True`` (default) — full stack against a saved map:
-  map_server + AMCL + controller / planner / behaviors / bt_navigator /
-  waypoint_follower / velocity_smoother + lifecycle manager.
+  map_server + AMCL + controller / planner / behaviors / bt_navigator +
+  lifecycle manager.
 - ``use_localization:=False`` — navigation-only: no map_server/amcl;
   localization and ``/map`` come from slam_toolbox. This is what
   navigation_only.launch.py (used by slam_nav2.launch.py) selects.
+
+waypoint_follower, velocity_smoother and (SLAM variant) smoother_server are
+intentionally not launched: nothing in this workspace calls FollowWaypoints
+or NavigateThroughPoses/SmoothPath (RViz GoalTool and web_control_node only
+issue NavigateToPose), and velocity_smoother duplicated DWB's own
+acc_lim_*/decel_lim_* limiting on every /cmd_vel message. controller_server
+now publishes cmd_vel directly instead of through velocity_smoother.
 
 Key difference from upstream nav2_bringup: the lifecycle_manager is given
 **bond_timeout: 0.0**. With the default 4 s bond timeout, a node that misses
@@ -65,39 +72,24 @@ def launch_setup(context, *args, **kwargs):
                            'controller_server',
                            'planner_server',
                            'behavior_server',
-                           'bt_navigator',
-                           'waypoint_follower',
-                           'velocity_smoother']
+                           'bt_navigator']
     else:
         # No map_server / amcl — slam_toolbox provides /map and map->odom.
-        # smoother_server is only part of this (SLAM) variant, matching the
-        # historical navigation_only.launch.py node set.
         lifecycle_nodes = ['controller_server',
-                           'smoother_server',
                            'planner_server',
                            'behavior_server',
-                           'bt_navigator',
-                           'waypoint_follower',
-                           'velocity_smoother']
+                           'bt_navigator']
 
     # node name -> (package, executable, extra remappings). controller_server
-    # publishes on cmd_vel_nav; velocity_smoother turns that into the final
-    # /cmd_vel.
+    # publishes the final /cmd_vel directly (no velocity_smoother hop; DWB's
+    # own acc_lim_*/decel_lim_* already limit acceleration).
     specs = {
         'map_server': ('nav2_map_server', 'map_server', []),
         'amcl': ('nav2_amcl', 'amcl', []),
-        'controller_server': (
-            'nav2_controller', 'controller_server',
-            [('cmd_vel', 'cmd_vel_nav')]),
-        'smoother_server': ('nav2_smoother', 'smoother_server', []),
+        'controller_server': ('nav2_controller', 'controller_server', []),
         'planner_server': ('nav2_planner', 'planner_server', []),
         'behavior_server': ('nav2_behaviors', 'behavior_server', []),
         'bt_navigator': ('nav2_bt_navigator', 'bt_navigator', []),
-        'waypoint_follower': (
-            'nav2_waypoint_follower', 'waypoint_follower', []),
-        'velocity_smoother': (
-            'nav2_velocity_smoother', 'velocity_smoother',
-            [('cmd_vel', 'cmd_vel_nav'), ('cmd_vel_smoothed', 'cmd_vel')]),
     }
 
     nodes = [

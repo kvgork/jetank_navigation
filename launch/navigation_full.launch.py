@@ -52,7 +52,7 @@ def generate_launch_description():
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='False',
+        default_value='false',
         description='Use simulation (Gazebo) clock if true')
 
     declare_rviz_cmd = DeclareLaunchArgument(

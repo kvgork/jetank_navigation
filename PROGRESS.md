@@ -13,8 +13,10 @@ stack that builds and runs end-to-end against real hardware:
 - **Mapping mode** — SLAM Toolbox (`async_slam_toolbox_node`) against the
   RPLidar C1M1 `/scan`. Maps saved with `scripts/save_map.sh`.
 - **Navigation mode** — full Nav2 stack (map_server, AMCL, planner_server,
-  controller_server with DWB, behavior_server, bt_navigator,
-  waypoint_follower, velocity_smoother) brought up via a lifecycle manager.
+  controller_server with DWB, behavior_server, bt_navigator) brought up via
+  a lifecycle manager. `waypoint_follower`/`velocity_smoother`/
+  `smoother_server` are not launched — nothing in this workspace calls
+  FollowWaypoints or NavigateThroughPoses/SmoothPath.
 - **RViz workflow** — `rviz/navigation.rviz` ships a panel with map,
   laser scan, robot model, particle cloud, global/local plan, costmap
   footprints. The `nav2_rviz_plugins/GoalTool` + `SetInitialPose` tools

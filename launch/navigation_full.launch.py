@@ -25,9 +25,9 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -60,66 +60,32 @@ def generate_launch_description():
         default_value='True',
         description='Launch RViz visualisation')
 
-    # Hardware bringup (items 1-4) only runs on the real robot. In simulation
-    # (use_sim_time:=true) Gazebo already provides robot_state_publisher, the
-    # /scan, /imu and /odom topics, and gz_ros2_control — so launching the
-    # hardware nodes here would spawn a second robot_state_publisher and a
-    # motor driver that spams I2C errors and publishes invalid JointStates.
-    # Gate them behind UnlessCondition(use_sim_time).
-
-    # 1. Robot state publisher (URDF/TF tree) — always includes RPLidar frame
-    urdf_launch = IncludeLaunchDescription(
+    # Hardware bring-up (URDF/TF, motor controller, IMU, RPLidar) plus SLAM/
+    # Nav2 are unified.launch.py's job (jetank_ros_main) — this file used to
+    # re-implement that same six-include graph with its own argument
+    # plumbing, which meant every hardware change had to be patched twice.
+    # Delegate to unified.launch.py instead, with its perception/web/MoveIt
+    # layers switched off (this file never included them) and 'mode'/'map'
+    # mapped onto unified's navigation_mode/map_file. unified.launch.py
+    # itself gates the hardware layer UnlessCondition(use_sim_time), so this
+    # still behaves correctly when called with use_sim_time:=true (e.g. from
+    # sim_demo.launch.py, which only wants the SLAM branch).
+    navigation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_main, 'launch', 'urdf.launch.py')
+            os.path.join(pkg_jetank_main, 'launch', 'unified.launch.py')
         ),
-        launch_arguments={'use_sim_time': use_sim_time}.items(),
-        condition=UnlessCondition(use_sim_time),
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'enable_web_control': 'false',
+            'enable_perception': 'false',
+            'enable_moveit': 'false',
+            'enable_navigation': 'true',
+            'navigation_mode': mode,
+            'map_file': map_file,
+        }.items(),
     )
 
-    # 2. Motor controller (publishes /odom, subscribes to /cmd_vel)
-    motor_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_main, 'launch', 'motor_controller.launch.py')
-        ),
-        condition=UnlessCondition(use_sim_time),
-    )
-
-    # 3. IMU (ICM-20948 on the Waveshare IMX219-83 stereo camera module)
-    imu_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_nav, 'launch', 'imu.launch.py')
-        ),
-        launch_arguments={'use_sim_time': use_sim_time}.items(),
-        condition=UnlessCondition(use_sim_time),
-    )
-
-    # 4. RPLidar (hardware driver publishing /scan)
-    lidar_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_nav, 'launch', 'lidar.launch.py')
-        ),
-        condition=UnlessCondition(use_sim_time),
-    )
-
-    # 5a. SLAM Toolbox (mapping mode)
-    slam_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_nav, 'launch', 'slam.launch.py')
-        ),
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'slam'"])),
-        launch_arguments={'use_sim_time': use_sim_time}.items(),
-    )
-
-    # 5b. Nav2 stack (navigation mode)
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(pkg_jetank_nav, 'launch', 'nav2_bringup.launch.py')
-        ),
-        condition=IfCondition(PythonExpression(["'", mode, "' == 'nav2'"])),
-        launch_arguments={'map': map_file, 'use_sim_time': use_sim_time}.items(),
-    )
-
-    # 6. RViz (uses nav2_bringup rviz wrapper to attach the navigation panel)
+    # RViz (uses nav2_bringup rviz wrapper to attach the navigation panel)
     rviz_config_file = os.path.join(pkg_jetank_nav, 'rviz', 'navigation.rviz')
     rviz_launch = GroupAction([
         IncludeLaunchDescription(
@@ -139,11 +105,6 @@ def generate_launch_description():
     ld.add_action(declare_map_cmd)
     ld.add_action(declare_use_sim_time_cmd)
     ld.add_action(declare_rviz_cmd)
-    ld.add_action(urdf_launch)
-    ld.add_action(motor_launch)
-    ld.add_action(imu_launch)
-    ld.add_action(lidar_launch)
-    ld.add_action(slam_launch)
-    ld.add_action(nav2_launch)
+    ld.add_action(navigation_launch)
     ld.add_action(rviz_launch)
     return ld

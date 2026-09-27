@@ -149,7 +149,8 @@ controller_server:
       decel_lim_theta: -1.0
       vx_samples: 20
       vy_samples: 0
-      vth_samples: 40
+      vtheta_samples: 40  # was misspelled "vth_samples" (ignored by DWB, silently
+                          # defaulted to 20); corrected, value unchanged here
       sim_time: 1.5
       linear_granularity: 0.05
       angular_granularity: 0.025
